@@ -151,31 +151,53 @@ class MainMenu:
                 break
 
     def reports_menu(self):
-        # Тут збираємо різну статистику та вивантажуємо дані у файли для звітів
         while True:
             print("\n ЗВІТИ ТА ЕКСПОРТ")
-            print("1. Список вільних квартир")
-            print("2. Топ-5 заселених квартир")
-            print("3. Експорт мешканців у JSON")
-            print("4. Експорт мешканців у CSV")
+            print("1. Повний список мешканців (на екран)")
+            print("2. Повний список квартир (на екран)")
+            print("3. Вільні квартири")
+            print("4. Квартири на конкретному поверсі")
+            print("5. Топ-5 найбільш заселених квартир (Бонус)")
+            print("6. Експорт всіх мешканців (CSV + JSON)")
             print("0. Назад")
 
             choice = input("\nВаш вибір: ")
+
             if choice == '1':
+                data = self.resident_repo.get_all()
+                TablePrinter.print_table(data, ["ID", "ПІБ", "Email", "Телефон", "Дата народж."])
+
+            elif choice == '2':
+                data = self.apartment_repo.get_all()
+                TablePrinter.print_table(data, ["ID", "№", "Поверх", "Тип"])
+
+            elif choice == '3':
                 data = self.apartment_repo.get_vacant()
                 TablePrinter.print_table(data, ["ID", "№", "Поверх", "Тип"])
-            elif choice == '2':
+
+            elif choice == '4':
+                floor = input("Введіть номер поверху: ")
+                if floor.isdigit():
+                    data = self.apartment_repo.get_by_floor(int(floor))
+                    TablePrinter.print_table(data, ["ID", "№", "Поверх", "Тип"])
+                else:
+                    print("Помилка: Поверх має бути числом.")
+
+            elif choice == '5':
                 data = self.report_service.get_apartments_with_most_residents()
                 TablePrinter.print_table(data, ["№ Квартири", "К-сть мешканців"])
-            elif choice == '3':
+
+            elif choice == '6':
                 data = self.report_service.get_residents_for_export()
-                path = Exporter.to_json(data, "residents")
-                print(f"Експортовано: {path}")
-            elif choice == '4':
-                data = self.resident_repo.get_all()
-                headers = ["ID", "ПІБ", "Email", "Телефон", "Дата народж."]
-                csv_data = [astuple(r) for r in data]
-                path = Exporter.to_csv(csv_data, "residents", headers)
-                print(f"Експортовано у CSV: {path}")
+
+                json_path = Exporter.to_json(data, "residents_report")
+                csv_path = Exporter.to_csv(data, "residents_report")
+
+                print(f"Дані збережено у папку exports:")
+                print(f"JSON: {json_path}")
+                print(f"CSV: {csv_path}")
+
             elif choice == '0':
                 break
+            else:
+                print("Невірний вибір, спробуйте ще раз.")
