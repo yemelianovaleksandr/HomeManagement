@@ -27,7 +27,7 @@
 ### 1. Клонування репозиторію
 
 ```bash
-git clone <посилання_на_репозиторій>
+git clone https://github.com/yemelianovaleksandr/HomeManagement.git
 cd HomeManagement
 ```
 
