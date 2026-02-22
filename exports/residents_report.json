@@ -1,0 +1,32 @@
+[
+    {
+        "id": 1,
+        "name": "Іван Петренко",
+        "email": "ivan.p@email.com",
+        "phone": "+380501112233"
+    },
+    {
+        "id": 2,
+        "name": "Марія Коваленко",
+        "email": "mariya.k@email.com",
+        "phone": "+380674445566"
+    },
+    {
+        "id": 3,
+        "name": "Олексій Швець",
+        "email": "olexiy.sh@email.com",
+        "phone": "+380937778899"
+    },
+    {
+        "id": 4,
+        "name": "Олена Сидорчук",
+        "email": "olena.s@email.com",
+        "phone": "+380509990011"
+    },
+    {
+        "id": 6,
+        "name": "фывапр",
+        "email": "asdew@mail.com",
+        "phone": "+380121234567"
+    }
+]

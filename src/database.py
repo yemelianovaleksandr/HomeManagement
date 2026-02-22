@@ -8,9 +8,8 @@ from src.utils.logger import logger
 class DatabaseManager:
     _instance = None
 
-
     def __new__(cls):
-        # Створюємо єдине підключення до бази, щоб не плодити зайві копії.
+        """Створюємо єдине підключення до бази, щоб не плодити зайві копії."""
         if cls._instance is None:
             cls._instance = super(DatabaseManager, cls).__new__(cls)
             cls._instance._connection = None
@@ -18,7 +17,7 @@ class DatabaseManager:
         return cls._instance
 
     def _initialize(self):
-        # Створюємо базу, підключаємось та заливаємо схему таблиць
+        """Створюємо базу, підключаємось та заливаємо схему таблиць"""
         try:
             self._create_db_if_not_exists()
             self._connection = psycopg2.connect(**DB_CONFIG)
@@ -33,7 +32,7 @@ class DatabaseManager:
             raise
 
     def _create_db_if_not_exists(self):
-        # Перевіряємо, чи існує наша база. Якщо ні — створюємо її з нуля
+        """Перевіряємо, чи існує наша база. Якщо ні — створюємо її з нуля"""
         temp_conn = psycopg2.connect(
             dbname='postgres',
             user=DB_CONFIG['user'],
@@ -55,14 +54,14 @@ class DatabaseManager:
         temp_conn.close()
 
     def _is_database_empty(self):
-        # Перевіряємо наявність мешканців та квартир у базі
+        """Перевіряємо наявність мешканців та квартир у базі"""
         query = "SELECT (SELECT COUNT(*) FROM residents) + (SELECT COUNT(*) FROM apartments)"
         with self._connection.cursor() as cur:
             cur.execute(query)
             return cur.fetchone()[0] == 0
 
     def _run_sql_script(self, file_path, description):
-        # Читаємо SQL-файл і виконуємо його вміст
+        """Читаємо SQL-файл і виконуємо його вміст"""
         if not os.path.exists(file_path):
             logger.warning(f"Файл {file_path} не знайдено. Пропуск ({description}).")
             return
@@ -73,7 +72,7 @@ class DatabaseManager:
             logger.info(f"Успішно виконано: {description}")
 
     def get_connection(self):
-        # Видаємо активне підключення. Якщо воно раптом "відпало" — перепідключаємось автоматично
+        """Видаємо активне підключення. Якщо воно раптом "відпало" — перепідключаємось автоматично"""
         if self._connection is None or self._connection.closed != 0:
             self._connection = psycopg2.connect(**DB_CONFIG)
             self._connection.autocommit = True

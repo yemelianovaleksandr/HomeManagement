@@ -6,7 +6,7 @@ class ApartmentRepository:
         self.db = DatabaseManager()
 
     def get_all(self):
-        # Дивимося список усіх квартир у будинку
+        """Дивимося список усіх квартир у будинку"""
         query = "SELECT id, number, floor, type, square_meters FROM apartments WHERE is_deleted = FALSE"
         conn = self.db.get_connection()
         with conn.cursor() as cur:
@@ -17,7 +17,7 @@ class ApartmentRepository:
             ]
 
     def get_by_id(self, apt_id):
-        # Шукаємо конкретну квартиру за її номером в базі
+        """Шукаємо конкретну квартиру за її номером в базі"""
         query = "SELECT id, number, floor, type, square_meters FROM apartments WHERE id = %s AND is_deleted = FALSE"
         conn = self.db.get_connection()
         with conn.cursor() as cur:
@@ -29,7 +29,7 @@ class ApartmentRepository:
 
 
     def get_by_floor(self, floor):
-        # Дивимося, які квартири є на конкретному поверсі
+        """Дивимося, які квартири є на конкретному поверсі"""
         query = "SELECT id, number, floor, type, square_meters FROM apartments WHERE floor = %s AND is_deleted = FALSE"
         conn = self.db.get_connection()
         with conn.cursor() as cur:
@@ -40,17 +40,16 @@ class ApartmentRepository:
             ]
 
     def get_by_type(self, apt_type):
-        # Фільтруємо квартири за типом
+        """Фільтруємо квартири за типом"""
         try:
             valid_type = AptType(apt_type)
         except ValueError:
-            # Виводимо помилку та список доступних типів
             allowed_types = ", ".join([t.value for t in AptType])
             print(f"\nПомилка: Тип квартири '{apt_type}' не знайдено.")
             print(f"Доступні типи: {allowed_types}")
             return []
 
-        # Фільтруємо квартири за підтвердженим типом
+        """Фільтруємо квартири за підтвердженим типом"""
         query = "SELECT id, number, floor, type, square_meters FROM apartments WHERE type = %s::apartment_type AND is_deleted = FALSE"
         conn = self.db.get_connection()
         with conn.cursor() as cur:
@@ -61,7 +60,7 @@ class ApartmentRepository:
             ]
 
     def get_top_populated(self, limit=5):
-        # Шукаємо квартири з найбільшою кількістю мешканців
+        """Шукаємо квартири з найбільшою кількістю мешканців"""
         query = """
                     SELECT a.number, COUNT(res.resident_id) as count
                     FROM apartments a
@@ -77,7 +76,7 @@ class ApartmentRepository:
             return cur.fetchall()
 
     def get_vacant(self):
-        # Отримуємо список вільних квартир
+        """Отримуємо список вільних квартир"""
         query = """
             SELECT a.id, a.number, a.floor, a.type 
             FROM apartments a

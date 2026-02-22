@@ -7,7 +7,7 @@ class HouseService:
         self.residency_repo = residency_repo
 
     def assign_resident_to_apartment(self, resident_id, apartment_id):
-        # Отримуємо з'єднання через один з репозиторіїв
+        """Отримуємо з'єднання через один з репозиторіїв"""
         conn = self.residency_repo.db.get_connection()
         try:
             with conn:
@@ -30,7 +30,7 @@ class HouseService:
             raise e
 
     def move_resident(self, resident_id, from_apt_id, to_apt_id):
-        # Організовуємо переїзд: спочатку виписуємо зі старої квартири, потім реєструємо в новій. Якщо щось піде не так — скасовуємо всі зміни
+        """Організовуємо переїзд: спочатку виписуємо зі старої квартири, потім реєструємо в новій. Якщо щось піде не так — скасовуємо всі зміни"""
         conn = self.residency_repo.db.get_connection()
         prev_autocommit = conn.autocommit
         conn.autocommit = False
@@ -56,7 +56,7 @@ class HouseService:
             conn.autocommit = prev_autocommit
 
     def unassign_resident(self, resident_id, apartment_id):
-        # Просто виписуємо мешканця з квартири
+        """Просто виписуємо мешканця з квартири"""
         try:
             self.residency_repo.remove_link(resident_id, apartment_id)
             logger.info(f"Мешканець {resident_id} відкріплений від квартири {apartment_id}.")
@@ -66,7 +66,7 @@ class HouseService:
             return False
 
     def get_apartment_details(self, apartment_id):
-        # Отримує деталі квартири та список її поточних мешканців
+        """Отримує деталі квартири та список її поточних мешканців"""
         apt = self.apartment_repo.get_by_id(apartment_id)
         if not apt:
             return None

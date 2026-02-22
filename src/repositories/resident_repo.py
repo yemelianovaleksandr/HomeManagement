@@ -6,7 +6,7 @@ class ResidentRepository:
         self.db = DatabaseManager()
 
     def create(self, full_name, email, phone, birth_date):
-        # Додаємо нового сусіда в нашу систему
+        """Додаємо нового сусіда в нашу систему"""
         query = """
             INSERT INTO residents (full_name, email, phone, birth_date)
             VALUES (%s, %s, %s, %s) RETURNING id;
@@ -17,7 +17,7 @@ class ResidentRepository:
             return cur.fetchone()[0]
 
     def get_all(self, include_deleted=False):
-        # Отримує список всіх мешканців
+        """Отримує список всіх мешканців"""
         if include_deleted:
             query = "SELECT id, full_name, email, phone, birth_date FROM residents ORDER BY id"
         else:
@@ -32,7 +32,7 @@ class ResidentRepository:
             ]
 
     def get_by_id(self, resident_id):
-        # Шукає конкретного мешканця за його унікальним ID
+        """Шукає конкретного мешканця за його унікальним ID"""
         query = "SELECT id, full_name, email, phone, birth_date FROM residents WHERE id = %s AND is_deleted = FALSE"
         conn = self.db.get_connection()
         with conn.cursor() as cur:
@@ -43,7 +43,7 @@ class ResidentRepository:
             return None
 
     def get_by_apartment_id(self, apartment_id):
-        # Дістаємо список усіх людей, які зараз прописані в цій квартирі
+        """Дістаємо список усіх людей, які зараз прописані в цій квартирі"""
         query = """
             SELECT r.id, r.full_name, r.email, r.phone 
             FROM residents r
@@ -56,7 +56,7 @@ class ResidentRepository:
             return cur.fetchall()
 
     def update(self, resident_id, **kwargs):
-        # Оновлюємо інформацію про людину
+        """Оновлюємо інформацію про людину"""
         if not kwargs:
             return False
 
@@ -71,7 +71,7 @@ class ResidentRepository:
             return cur.rowcount > 0
 
     def soft_delete(self, resident_id):
-        # Позначає мешканця як видаленого
+        """Позначає мешканця як видаленого"""
         query = "UPDATE residents SET is_deleted = TRUE WHERE id = %s AND is_deleted = FALSE"
         conn = self.db.get_connection()
         with conn.cursor() as cur:
