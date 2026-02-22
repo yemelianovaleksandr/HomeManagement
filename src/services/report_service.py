@@ -6,10 +6,9 @@ class ReportService:
     def get_residents_for_export(self):
         """Готуємо дані про мешканців у зручному форматі для вивантаження (CSV/JSON)"""
         raw_data = self.resident_repo.get_all()
-        return [
-            {"id": r.id, "name": r.full_name, "email": r.email, "phone": r.phone}
-            for r in raw_data
-        ]
+        headers = ["ID", "Name", "Email", "Phone"]
+        rows = [[r.id, r.full_name, r.email, r.phone] for r in raw_data]
+        return headers, rows
 
     def get_apartments_with_most_residents(self):
         """Робимо топ-5 найбільш "густонаселених" квартир у будинку"""

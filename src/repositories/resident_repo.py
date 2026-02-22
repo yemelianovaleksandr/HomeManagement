@@ -1,5 +1,6 @@
 from src.database import DatabaseManager
 from src.models.resident import Resident
+from psycopg2 import sql
 
 class ResidentRepository:
     def __init__(self):
@@ -59,12 +60,19 @@ class ResidentRepository:
         """Оновлюємо інформацію про людину"""
         if not kwargs:
             return False
-
-        fields = ", ".join([f"{key} = %s" for key in kwargs.keys()])
+        allowed_columns = {'full_name', 'email', 'phone', 'birth_date'}
+        invalid_columns = set(kwargs.keys()) - allowed_columns
+        if invalid_columns:
+            raise ValueError(f"Недопустимі колонки для оновлення: {invalid_columns}")
+        set_clauses = [
+            sql.SQL("{} = %s").format(sql.Identifier(key))
+            for key in kwargs.keys()
+        ]
+        query = sql.SQL("UPDATE residents SET {fields} WHERE id = %s AND is_deleted = FALSE").format(
+            fields=sql.SQL(", ").join(set_clauses)
+        )
         values = list(kwargs.values())
         values.append(resident_id)
-
-        query = f"UPDATE residents SET {fields} WHERE id = %s"
         conn = self.db.get_connection()
         with conn.cursor() as cur:
             cur.execute(query, values)

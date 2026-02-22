@@ -1,5 +1,6 @@
 from src.database import DatabaseManager
 from src.models.apartments import Apartment, AptType
+from psycopg2 import sql
 
 class ApartmentRepository:
     def __init__(self):
@@ -11,10 +12,53 @@ class ApartmentRepository:
         conn = self.db.get_connection()
         with conn.cursor() as cur:
             cur.execute(query)
-            return [
-                Apartment(id=r[0], number=r[1], floor=r[2], type=AptType(r[3]), square_meters=r[4])
-                for r in cur.fetchall()
-            ]
+            return [Apartment(id=r[0], number=r[1], floor=r[2], type=AptType(r[3]),
+                            square_meters=r[4]) for r in cur.fetchall()]
+
+    def create(self, number, floor, apt_type, square_meters):
+        """Створити нову квартиру"""
+        query = "INSERT INTO apartments (number, floor, type, square_meters) VALUES (%s, %s, %s, %s) RETURNING id"
+        conn = self.db.get_connection()
+        with conn.cursor() as cur:
+            cur.execute(query, (number, floor, apt_type, square_meters))
+            return cur.fetchone()[0]
+
+    def update(self, apt_id, number=None, floor=None, apt_type=None, square_meters=None):
+        """Оновити дані квартири"""
+        updates = []
+        params = []
+        if number is not None:
+            updates.append(sql.SQL("{} = %s").format(sql.Identifier("number")))
+            params.append(number)
+        if floor is not None:
+            updates.append(sql.SQL("{} = %s").format(sql.Identifier("floor")))
+            params.append(floor)
+        if apt_type is not None:
+            updates.append(sql.SQL("{} = %s").format(sql.Identifier("type")))
+            params.append(apt_type)
+        if square_meters is not None:
+            updates.append(sql.SQL("{} = %s").format(sql.Identifier("square_meters")))
+            params.append(square_meters)
+
+        if not updates:
+            return False
+
+        params.append(apt_id)
+        query = sql.SQL("UPDATE apartments SET {fields} WHERE id = %s AND is_deleted = FALSE").format(
+            fields=sql.SQL(", ").join(updates)
+        )
+        conn = self.db.get_connection()
+        with conn.cursor() as cur:
+            cur.execute(query, tuple(params))
+            return cur.rowcount > 0
+
+    def delete(self, apt_id):
+        """Видалення квартири"""
+        query = "UPDATE apartments SET is_deleted = TRUE WHERE id = %s"
+        conn = self.db.get_connection()
+        with conn.cursor() as cur:
+            cur.execute(query, (apt_id,))
+            return cur.rowcount > 0
 
     def get_by_id(self, apt_id):
         """Шукаємо конкретну квартиру за її номером в базі"""
@@ -48,8 +92,6 @@ class ApartmentRepository:
             print(f"\nПомилка: Тип квартири '{apt_type}' не знайдено.")
             print(f"Доступні типи: {allowed_types}")
             return []
-
-        """Фільтруємо квартири за підтвердженим типом"""
         query = "SELECT id, number, floor, type, square_meters FROM apartments WHERE type = %s::apartment_type AND is_deleted = FALSE"
         conn = self.db.get_connection()
         with conn.cursor() as cur:

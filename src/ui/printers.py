@@ -5,33 +5,25 @@ class TablePrinter:
             print("\n Дані відсутні")
             return
 
-        col_widths = [len(str(h)) for h in headers] #Рахуємо максимальну ширину для кожного стовпця
+        col_widths = []
+        for i, header in enumerate(headers):
+            max_val = len(str(header))
+            for row in data:
+                val = str(row[i]) if i < len(row) else ""
+                if len(val) > max_val:
+                    max_val = len(val)
+            col_widths.append(max_val)
 
-        normalized_data = []
+        separator = "+" + "+".join(["-" * (w + 2) for w in col_widths]) + "+"
+
+        print(separator)
+        header_row = "|" + "|".join([f" {str(h).ljust(col_widths[i])} " for i, h in enumerate(headers)]) + "|"
+        print(header_row)
+        print(separator)
         for row in data:
-            safe_row = list(row)[:len(headers)]
-            safe_row += [""] * (len(headers) - len(safe_row))
-            normalized_data.append(safe_row)
-
-        for row in normalized_data:
-            for i, cell in enumerate(row):
-                col_widths[i] = max(col_widths[i], len(str(cell)))
-
-        row_format = " | ".join([f"{{:<{w}}}" for w in col_widths]) #Формуємо рядок так, щоб текст був рівненько по лівому краю
-        row_format = f"| {row_format} |"
-
-        separator = "+-" + "-+-".join(["-" * w for w in col_widths]) + "-+" #Створюємо горизонтальну лінію-розділювач
-
-        print("\n" + separator)
-        print(row_format.format(*headers))
+            data_row = "|" + "|".join([f" {str(row[i]).ljust(col_widths[i])} " for i in range(len(headers))]) + "|"
+            print(data_row)
         print(separator)
-
-        for row in normalized_data:
-            clean_row = [str(item) if item is not None else "-" for item in row]
-            print(row_format.format(*clean_row))
-
-        print(separator)
-        print(f"Всього записів: {len(normalized_data)}\n")
 
     @staticmethod
     def print_apartment_info(details):

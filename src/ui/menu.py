@@ -2,7 +2,7 @@ import sys
 from dataclasses import astuple
 from src.ui.printers import TablePrinter
 from src.utils.exporter import Exporter
-from src.utils.validators import get_int_input, validate_email, validate_phone, validate_date
+from src.utils.validators import get_int_input, validate_email, validate_phone, validate_date, get_float_input
 
 class MainMenu:
     def __init__(self, house_service, report_service, resident_repo, apartment_repo):
@@ -43,6 +43,7 @@ class MainMenu:
             print("1. Додати мешканця")
             print("2. Список усіх мешканців")
             print("3. Видалити мешканця (Soft delete)")
+            print("4. Редагувати контактні дані")
             print("0. Назад")
 
             choice = input("\nВаш вибір: ")
@@ -78,45 +79,92 @@ class MainMenu:
                 TablePrinter.print_table(table_data, ["ID", "ПІБ", "Email", "Телефон", "Дата народж."])
             elif choice == '3':
                 res_id = get_int_input("Введіть ID для видалення: ")
-                if self.resident_repo.soft_delete(res_id):
-                    print("Мешканця видалено (soft delete).")
+                if self.service.delete_resident(res_id):
+                    print("Мешканця видалено та відкріплено від усіх квартир.")
                 else:
                     print("Помилка: Мешканця з таким ID не знайдено або він вже видалений.")
+            elif choice == '4':
+                res_id = get_int_input("Введіть ID мешканця: ")
+                if not self.resident_repo.get_by_id(res_id):
+                    print("Мешканця не знайдено.")
+                    continue
+
+                print("Залиште поле порожнім, якщо не хочете його змінювати.")
+                new_phone = input("Новий телефон (+380...): ").strip()
+                new_email = input("Новий Email: ").strip()
+
+                updates = {}
+                if new_phone and validate_phone(new_phone):
+                    updates['phone'] = new_phone
+                elif new_phone:
+                    print("Телефон проігноровано (невірний формат).")
+
+                if new_email and validate_email(new_email):
+                    updates['email'] = new_email
+                elif new_email:
+                    print("Email проігноровано (невірний формат).")
+
+                if updates:
+                    self.resident_repo.update(res_id, **updates)
+                    print("Дані успішно оновлено!")
+                else:
+                    print("Немає коректних даних для оновлення.")
             elif choice == '0':
                 break
 
     def apartment_menu(self):
         while True:
             print("\n УПРАВЛІННЯ КВАРТИРАМИ")
-            print("1. Список усіх квартир")
-            print("2. Деталі квартири (Мешканці)")
-            print("3. Пошук квартир за поверхом")
-            print("4. Пошук квартир за типом")
+            print("1. Додати квартиру")
+            print("2. Список усіх квартир")
+            print("3. Деталі квартири (Мешканці)")
+            print("4. Пошук квартир за поверхом")
+            print("5. Пошук квартир за типом")
+            print("6. Видалити квартиру (Soft delete)")
             print("0. Назад")
 
             choice = input("\nВаш вибір: ")
 
             if choice == '1':
+                number = input("Номер квартири: ")
+                floor = get_int_input("Поверх: ")
+                apt_type = input("Тип (Студія, Однокімнатна, Двокімнатна і т.д.): ")
+                sq_meters = get_float_input("Площа (м²): ")
+                try:
+                    self.apartment_repo.create(number, floor, apt_type, sq_meters)
+                    print(f"Квартиру №{number} успішно додано!")
+                except Exception as e:
+                    print(f"Помилка при додаванні: {e}")
+
+            elif choice == '2':
                 data = self.apartment_repo.get_all()
                 table_data = [(a.id, a.number, a.floor, a.type.value, a.square_meters) for a in data]
                 TablePrinter.print_table(table_data, ["ID", "№", "Поверх", "Тип", "Площа"])
 
-            elif choice == '2':
+            elif choice == '3':
                 apt_id = get_int_input("ID квартири: ")
                 details = self.service.get_apartment_details(apt_id)
                 TablePrinter.print_apartment_info(details)
 
-            elif choice == '3':
+            elif choice == '4':
                 floor = get_int_input("Введіть поверх: ")
                 data = self.apartment_repo.get_by_floor(floor)
                 table_data = [(a.id, a.number, a.floor, a.type.value, a.square_meters) for a in data]
                 TablePrinter.print_table(table_data, ["ID", "№", "Поверх", "Тип", "Площа"])
 
-            elif choice == '4':
+            elif choice == '5':
                 apt_type = input("Введіть тип (Студія, Однокімнатна, Двокімнатна і т.д.): ")
                 data = self.apartment_repo.get_by_type(apt_type)
                 table_data = [(a.id, a.number, a.floor, a.type.value, a.square_meters) for a in data]
                 TablePrinter.print_table(table_data, ["ID", "№", "Поверх", "Тип", "Площа"])
+
+            elif choice == '6':
+                apt_id = get_int_input("Введіть ID квартири для видалення: ")
+                if self.apartment_repo.delete(apt_id):
+                    print("Квартиру видалено (soft delete).")
+                else:
+                    print("Помилка при видаленні.")
+
             elif choice == '0':
                 break
 
@@ -126,6 +174,7 @@ class MainMenu:
             print("\n ОПЕРАЦІЇ")
             print("1. Закріпити мешканця за квартирою")
             print("2. Переселити мешканця")
+            print("3. Відкріпити мешканця (виселення)")
             print("0. Назад")
 
             choice = input("\nВаш вибір: ")
@@ -146,6 +195,13 @@ class MainMenu:
                     print("Переселення завершено.")
                 except Exception as e:
                     print(f"Помилка: {e}")
+            elif choice == '3':
+                res_id = get_int_input("ID мешканця: ")
+                apt_id = get_int_input("ID квартири: ")
+                if self.service.unassign_resident(res_id, apt_id):
+                    print("Мешканця успішно відкріплено від квартири.")
+                else:
+                    print("Не вдалося відкріпити (можливо, зв'язок не існує).")
             elif choice == '0':
                 break
 
@@ -164,11 +220,13 @@ class MainMenu:
 
             if choice == '1':
                 data = self.resident_repo.get_all()
-                TablePrinter.print_table(data, ["ID", "ПІБ", "Email", "Телефон", "Дата народж."])
+                table_data = [astuple(r) for r in data]
+                TablePrinter.print_table(table_data, ["ID", "ПІБ", "Email", "Телефон", "Дата народж."])
 
             elif choice == '2':
                 data = self.apartment_repo.get_all()
-                TablePrinter.print_table(data, ["ID", "№", "Поверх", "Тип"])
+                table_data = [(a.id, a.number, a.floor, a.type.value) for a in data]
+                TablePrinter.print_table(table_data, ["ID", "№", "Поверх", "Тип"])
 
             elif choice == '3':
                 data = self.apartment_repo.get_vacant()
@@ -178,7 +236,8 @@ class MainMenu:
                 floor = input("Введіть номер поверху: ")
                 if floor.isdigit():
                     data = self.apartment_repo.get_by_floor(int(floor))
-                    TablePrinter.print_table(data, ["ID", "№", "Поверх", "Тип"])
+                    table_data = [(a.id, a.number, a.floor, a.type.value) for a in data]
+                    TablePrinter.print_table(table_data, ["ID", "№", "Поверх", "Тип"])
                 else:
                     print("Помилка: Поверх має бути числом.")
 
@@ -187,15 +246,13 @@ class MainMenu:
                 TablePrinter.print_table(data, ["№ Квартири", "К-сть мешканців"])
 
             elif choice == '6':
-                data = self.report_service.get_residents_for_export()
-
-                json_path = Exporter.to_json(data, "residents_report")
-                csv_path = Exporter.to_csv(data, "residents_report")
-
+                headers, rows = self.report_service.get_residents_for_export()
+                json_data = [dict(zip(headers, row)) for row in rows]
+                json_path = Exporter.to_json(json_data, "residents_report")
+                csv_path = Exporter.to_csv(rows, "residents_report", headers=headers)
                 print(f"Дані збережено у папку exports:")
                 print(f"JSON: {json_path}")
                 print(f"CSV: {csv_path}")
-
             elif choice == '0':
                 break
             else:

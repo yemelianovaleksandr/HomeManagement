@@ -10,15 +10,15 @@ CREATE TABLE IF NOT EXISTS apartments (
     number VARCHAR(10) UNIQUE NOT NULL,
     floor INTEGER NOT NULL CHECK (floor >= 0),
     type apartment_type NOT NULL,
-    square_meters DECIMAL(5,2) CHECK (square_meters > 0),
+        square_meters DECIMAL(5,2) NOT NULL CHECK (square_meters > 0),
     is_deleted BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS residents (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
-    email VARCHAR(100) UNIQUE,
-    phone VARCHAR(20),
+    email VARCHAR(100) UNIQUE NOT NULL,
+    phone VARCHAR(20) NOT NULL,
     birth_date DATE,
     is_deleted BOOLEAN DEFAULT FALSE
 );

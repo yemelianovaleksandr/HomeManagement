@@ -77,3 +77,9 @@ class DatabaseManager:
             self._connection = psycopg2.connect(**DB_CONFIG)
             self._connection.autocommit = True
         return self._connection
+
+    def get_transaction_connection(self):
+        """Видає нове, ізольоване підключення спеціально для транзакцій autocommit = False"""
+        conn = psycopg2.connect(**DB_CONFIG)
+        conn.autocommit = False
+        return conn

@@ -7,19 +7,17 @@ class HouseService:
         self.residency_repo = residency_repo
 
     def assign_resident_to_apartment(self, resident_id, apartment_id):
-        """Отримуємо з'єднання через один з репозиторіїв"""
-        conn = self.residency_repo.db.get_connection()
+        """Закріплюємо мешканця за квартирою в межах безпечної транзакції"""
+        conn = self.residency_repo.db.get_transaction_connection()
         try:
             with conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT id FROM residents WHERE id = %s AND is_deleted = FALSE", (resident_id,))
                     if not cur.fetchone():
                         raise Exception("Мешканця не знайдено (або його видалено)")
-
                     cur.execute("SELECT id FROM apartments WHERE id = %s AND is_deleted = FALSE", (apartment_id,))
                     if not cur.fetchone():
                         raise Exception("Квартиру не знайдено (або її видалено)")
-
                     cur.execute(
                         "INSERT INTO residency (resident_id, apartment_id) VALUES (%s, %s)",
                         (resident_id, apartment_id)
@@ -28,39 +26,39 @@ class HouseService:
         except Exception as e:
             logger.error(f"Помилка при закріпленні мешканця: {e}")
             raise e
+        finally:
+            conn.close()
 
     def move_resident(self, resident_id, from_apt_id, to_apt_id):
         """Організовуємо переїзд: спочатку виписуємо зі старої квартири, потім реєструємо в новій. Якщо щось піде не так — скасовуємо всі зміни"""
-        conn = self.residency_repo.db.get_connection()
-        prev_autocommit = conn.autocommit
-        conn.autocommit = False
+        conn = self.residency_repo.db.get_transaction_connection()
         try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM residency WHERE resident_id = %s AND apartment_id = %s",
-                    (resident_id, from_apt_id)
-                )
-                if cur.rowcount == 0:
-                    raise Exception("Мешканця не знайдено в зазначеній квартирі")
-                cur.execute(
-                    "INSERT INTO residency (resident_id, apartment_id) VALUES (%s, %s)",
-                    (resident_id, to_apt_id)
-                )
-            conn.commit()
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "DELETE FROM residency WHERE resident_id = %s AND apartment_id = %s",
+                        (resident_id, from_apt_id)
+                    )
+                    if cur.rowcount == 0:
+                        raise Exception("Мешканця не знайдено в зазначеній квартирі")
+                    cur.execute(
+                        "INSERT INTO residency (resident_id, apartment_id) VALUES (%s, %s)",
+                        (resident_id, to_apt_id)
+                    )
             logger.info(f"ТРАНЗАКЦІЯ УСПІШНА: Мешканець {resident_id} переїхав з {from_apt_id} до {to_apt_id}")
         except Exception as e:
-            conn.rollback()
             logger.error(f"ТРАНЗАКЦІЯ СКАСОВАНА: Помилка при переселенні: {e}")
             raise e
         finally:
-            conn.autocommit = prev_autocommit
+            conn.close()
 
     def unassign_resident(self, resident_id, apartment_id):
         """Просто виписуємо мешканця з квартири"""
         try:
-            self.residency_repo.remove_link(resident_id, apartment_id)
-            logger.info(f"Мешканець {resident_id} відкріплений від квартири {apartment_id}.")
-            return True
+            if self.residency_repo.remove_link(resident_id, apartment_id):
+                logger.info(f"Мешканець {resident_id} відкріплений від квартири {apartment_id}.")
+                return True
+            return  False
         except Exception as e:
             logger.error(f"Помилка відкріплення: {e}")
             return False
@@ -77,3 +75,22 @@ class HouseService:
             "residents": residents,
             "count": len(residents)
         }
+
+    def delete_resident(self, resident_id):
+        """Відкріплюємо від квартир і видаляємо"""
+        conn = self.resident_repo.db.get_transaction_connection()
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM residency WHERE resident_id = %s", (resident_id,))
+                    cur.execute("UPDATE residents SET is_deleted = TRUE WHERE id = %s AND is_deleted = FALSE",
+                                (resident_id,))
+                    if cur.rowcount == 0:
+                        raise Exception("Мешканця не знайдено або він вже видалений")
+            logger.info(f"Мешканця {resident_id} видалено та відкріплено від квартир.")
+            return True
+        except Exception as e:
+            logger.error(f"Помилка при видаленні мешканця {resident_id}: {e}")
+            return False
+        finally:
+            conn.close()

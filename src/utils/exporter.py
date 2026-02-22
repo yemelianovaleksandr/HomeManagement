@@ -28,8 +28,13 @@ class Exporter:
         path = os.path.join(folder, f"{filename}.csv")
 
         with open(path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            if headers:
-                writer.writerow(headers)
-            writer.writerows(data)
+            if data and isinstance(data[0], dict):
+                writer = csv.DictWriter(f, fieldnames=data[0].keys())
+                writer.writeheader()
+                writer.writerows(data)
+            else:
+                writer = csv.writer(f)
+                if headers:
+                    writer.writerow(headers)
+                writer.writerows(data)
         return path
