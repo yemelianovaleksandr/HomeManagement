@@ -3,6 +3,7 @@ from dataclasses import astuple
 from src.ui.printers import TablePrinter
 from src.utils.exporter import Exporter
 from src.utils.validators import get_int_input, validate_email, validate_phone, validate_date, get_float_input
+from src.models.apartments import AptType
 
 class MainMenu:
     def __init__(self, house_service, report_service, resident_repo, apartment_repo):
@@ -121,20 +122,45 @@ class MainMenu:
             print("4. Пошук квартир за поверхом")
             print("5. Пошук квартир за типом")
             print("6. Видалити квартиру (Soft delete)")
+            print("7. Редагувати квартиру")
             print("0. Назад")
 
             choice = input("\nВаш вибір: ")
 
             if choice == '1':
-                number = input("Номер квартири: ")
+                number = input("Номер квартири: ").strip()
+                if not number:
+                    print("Номер квартири не може бути порожнім.")
+                    continue
+
                 floor = get_int_input("Поверх: ")
-                apt_type = input("Тип (Студія, Однокімнатна, Двокімнатна і т.д.): ")
+                allowed_types = [e.value for e in AptType]
+                print("\nДозволені типи квартир:")
+                for i, t in enumerate(allowed_types, 1):
+                    print(f"  {i}. {t}")
+                while True:
+                    type_input = input("\nВиберіть тип квартири (введіть номер або повний текст): ").strip()
+                    selected_type = None
+                    if type_input.isdigit():
+                        idx = int(type_input) - 1
+                        if 0 <= idx < len(allowed_types):
+                            selected_type = allowed_types[idx]
+                    else:
+                        type_lower = type_input.lower()
+                        for t in allowed_types:
+                            if t.lower() == type_lower:
+                                selected_type = t
+                                break
+                    if selected_type:
+                        break
+                    else:
+                        print("Невірний вибір. Спробуйте ще раз (номер або назву типу).")
                 sq_meters = get_float_input("Площа (м²): ")
                 try:
-                    self.apartment_repo.create(number, floor, apt_type, sq_meters)
-                    print(f"Квартиру №{number} успішно додано!")
+                    created_id = self.apartment_repo.create(number, floor, selected_type, sq_meters)
+                    print(f"Квартиру №{number} (ID {created_id}) успішно додано!")
                 except Exception as e:
-                    print(f"Помилка при додаванні: {e}")
+                    print(f"Помилка при додаванні квартири: {e}")
 
             elif choice == '2':
                 data = self.apartment_repo.get_all()
@@ -164,7 +190,51 @@ class MainMenu:
                     print("Квартиру видалено (soft delete).")
                 else:
                     print("Помилка при видаленні.")
+            elif choice == "7":
+                apt_id = get_int_input("Введіть ID квартири для редагування: ")
+                conn = self.apartment_repo.db.get_connection()
+                with conn.cursor() as cur:
+                    cur.execute("""
+                            SELECT number, floor, type, square_meters 
+                            FROM apartments 
+                            WHERE id = %s AND is_deleted = FALSE
+                        """, (apt_id,))
+                    row = cur.fetchone()
 
+                if not row:
+                    print("Квартиру не знайдено або вона видалена.")
+                    continue
+
+                current_number, current_floor, current_type, current_sq = row
+
+                print("\nПоточні дані:")
+                print(f"  Номер : {current_number}")
+                print(f"  Поверх: {current_floor}")
+                print(f"  Тип   : {current_type}")
+                print(f"  Площа : {current_sq} м²")
+
+                print("\nНові значення (Enter — залишити без змін):")
+
+                number = input(f"Номер квартири [{current_number}]: ").strip() or None
+                floor_str = input(f"Поверх [{current_floor}]: ").strip()
+                type_str = input(f"Тип [{current_type}]: ").strip()
+                sq_str = input(f"Площа (м²) [{current_sq}]: ").strip()
+
+                floor = int(floor_str) if floor_str else None
+                sq_meters = float(sq_str.replace(',', '.')) if sq_str else None
+                apt_type = type_str if type_str else None
+
+                try:
+                    updated = self.apartment_repo.update(
+                        apt_id=apt_id,
+                        number=number,
+                        floor=floor,
+                        apt_type=apt_type,
+                        square_meters=sq_meters
+                    )
+                    print("Квартиру успішно оновлено!" if updated else "Не вдалося оновити (можливо видалена).")
+                except Exception as e:
+                    print(f"Помилка при оновленні: {e}")
             elif choice == '0':
                 break
 

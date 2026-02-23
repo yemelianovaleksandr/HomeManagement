@@ -30,27 +30,56 @@ class HouseService:
             conn.close()
 
     def move_resident(self, resident_id, from_apt_id, to_apt_id):
-        """Організовуємо переїзд: спочатку виписуємо зі старої квартири, потім реєструємо в новій. Якщо щось піде не так — скасовуємо всі зміни"""
-        conn = self.residency_repo.db.get_transaction_connection()
+        """Переселяє мешканця з однієї квартири в іншу. Виконує всі необхідні перевірки перед операцією."""
+        if from_apt_id == to_apt_id:
+            raise ValueError("Неможливо переселити в ту саму квартиру (from == to)")
+        resident = self.resident_repo.get_by_id(resident_id)
+        if resident is None:
+            raise ValueError(f"Мешканця з ID {resident_id} не знайдено або він видалений")
+        from_apt = self.apartment_repo.get_by_id(from_apt_id)
+        if from_apt is None:
+            raise ValueError(f"Квартиру-джерело (ID {from_apt_id}) не знайдено або видалено")
+        to_apt = self.apartment_repo.get_by_id(to_apt_id)
+        if to_apt is None:
+            raise ValueError(f"Квартиру-призначення (ID {to_apt_id}) не знайдено або видалено")
+        conn = self.residency_repo.db.get_connection()
         try:
-            with conn:
-                with conn.cursor() as cur:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT 1 FROM residency
+                    WHERE resident_id = %s AND apartment_id = %s
+                    """,
+                    (resident_id, from_apt_id)
+                )
+                if not cur.fetchone():
+                    raise ValueError(
+                        f"Мешканець ID {resident_id} не прописаний у квартирі ID {from_apt_id}"
+                    )
+        finally:
+            pass
+        conn_tx = self.residency_repo.db.get_transaction_connection()
+        try:
+            with conn_tx:
+                with conn_tx.cursor() as cur:
                     cur.execute(
                         "DELETE FROM residency WHERE resident_id = %s AND apartment_id = %s",
                         (resident_id, from_apt_id)
                     )
-                    if cur.rowcount == 0:
-                        raise Exception("Мешканця не знайдено в зазначеній квартирі")
                     cur.execute(
                         "INSERT INTO residency (resident_id, apartment_id) VALUES (%s, %s)",
                         (resident_id, to_apt_id)
                     )
-            logger.info(f"ТРАНЗАКЦІЯ УСПІШНА: Мешканець {resident_id} переїхав з {from_apt_id} до {to_apt_id}")
+            logger.info(
+                f"Мешканець {resident_id} ({resident.full_name}) "
+                f"переселений з квартири {from_apt_id} → {to_apt_id}"
+            )
+            return True
         except Exception as e:
-            logger.error(f"ТРАНЗАКЦІЯ СКАСОВАНА: Помилка при переселенні: {e}")
-            raise e
+            logger.error(f"Помилка при переселенні мешканця {resident_id}: {e}")
+            raise
         finally:
-            conn.close()
+            conn_tx.close()
 
     def unassign_resident(self, resident_id, apartment_id):
         """Просто виписуємо мешканця з квартири"""

@@ -68,7 +68,17 @@ class ApartmentRepository:
             cur.execute(query, (apt_id,))
             row = cur.fetchone()
             if row:
-                return Apartment(id=row[0], number=row[1], floor=row[2], type=AptType(row[3]), square_meters=row[4])
+                try:
+                    return Apartment(
+                        id=row[0],
+                        number=row[1],
+                        floor=row[2],
+                        type=AptType(row[3]),
+                        square_meters=row[4]
+                    )
+                except ValueError:
+                    print(f"Невалідне значення типу квартири для ID {apt_id}")
+                    return None
             return None
 
 
