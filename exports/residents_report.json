@@ -1,32 +1,37 @@
 [
     {
-        "id": 1,
-        "name": "Іван Петренко",
-        "email": "ivan.p@email.com",
-        "phone": "+380501112233"
+        "ID": 1,
+        "Name": "Іван Петренко",
+        "Email": "ivan.p@email.com",
+        "Phone": "+380501112233",
+        "Birth Date": "15.05.1990"
     },
     {
-        "id": 2,
-        "name": "Марія Коваленко",
-        "email": "mariya.k@email.com",
-        "phone": "+380674445566"
+        "ID": 2,
+        "Name": "Марія Коваленко",
+        "Email": "mariya.k@email.com",
+        "Phone": "+380674445566",
+        "Birth Date": "20.10.1992"
     },
     {
-        "id": 3,
-        "name": "Олексій Швець",
-        "email": "olexiy.sh@email.com",
-        "phone": "+380937778899"
+        "ID": 3,
+        "Name": "Олексій Швець",
+        "Email": "olexiy.sh@email.com",
+        "Phone": "+380937778899",
+        "Birth Date": "12.03.1985"
     },
     {
-        "id": 4,
-        "name": "Олена Сидорчук",
-        "email": "olena.s@email.com",
-        "phone": "+380509990011"
+        "ID": 4,
+        "Name": "Олена Сидорчук",
+        "Email": "olena.s@email.com",
+        "Phone": "+380509990011",
+        "Birth Date": "01.12.1995"
     },
     {
-        "id": 6,
-        "name": "фывапр",
-        "email": "asdew@mail.com",
-        "phone": "+380121234567"
+        "ID": 7,
+        "Name": "qqwqwertyuiolkjhgfdsazxcvbnmkiuytrewsxcvb",
+        "Email": "qwertyui@mail.com",
+        "Phone": "+380123456789",
+        "Birth Date": "11.11.1999"
     }
 ]

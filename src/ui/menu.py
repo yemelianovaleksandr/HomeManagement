@@ -316,10 +316,14 @@ class MainMenu:
                 TablePrinter.print_table(data, ["№ Квартири", "К-сть мешканців"])
 
             elif choice == '6':
-                headers, rows = self.report_service.get_residents_for_export()
-                json_data = [dict(zip(headers, row)) for row in rows]
+                export_data = self.report_service.get_residents_for_export()
+
+                json_headers, json_rows = export_data["json"]
+                json_data = [dict(zip(json_headers, row)) for row in json_rows]
                 json_path = Exporter.to_json(json_data, "residents_report")
-                csv_path = Exporter.to_csv(rows, "residents_report", headers=headers)
+
+                csv_headers, csv_rows = export_data["csv"]
+                csv_path = Exporter.to_csv(csv_rows, "residents_report", headers=csv_headers)
                 print(f"Дані збережено у папку exports:")
                 print(f"JSON: {json_path}")
                 print(f"CSV: {csv_path}")
