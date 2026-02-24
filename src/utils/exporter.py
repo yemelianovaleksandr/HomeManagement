@@ -20,6 +20,9 @@ class Exporter:
 
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
+            f.close()
         return path
 
     @staticmethod
@@ -37,4 +40,7 @@ class Exporter:
                 if headers:
                     writer.writerow(headers)
                 writer.writerows(data)
+            f.flush()
+            os.fsync(f.fileno())
+            f.close()
         return path

@@ -1,0 +1,37 @@
+[
+    {
+        "ID": 1,
+        "Name": "Іван Петренко",
+        "Email": "ivan.p@email.com",
+        "Phone": "+380501112233",
+        "Birth Date": "15.05.1990"
+    },
+    {
+        "ID": 2,
+        "Name": "Марія Коваленко",
+        "Email": "mariya.k@email.com",
+        "Phone": "+380674445566",
+        "Birth Date": "20.10.1992"
+    },
+    {
+        "ID": 3,
+        "Name": "Олексій Швець",
+        "Email": "olexiy.sh@email.com",
+        "Phone": "+380937778899",
+        "Birth Date": "12.03.1985"
+    },
+    {
+        "ID": 4,
+        "Name": "Олена Сидорчук",
+        "Email": "olena.s@email.com",
+        "Phone": "+380509990011",
+        "Birth Date": "01.12.1995"
+    },
+    {
+        "ID": 7,
+        "Name": "qqwqwertyuiolkjhgfdsazxcvbnmkiuytrewsxcvb",
+        "Email": "qwertyui@mail.com",
+        "Phone": "+380123456789",
+        "Birth Date": "11.11.1999"
+    }
+]

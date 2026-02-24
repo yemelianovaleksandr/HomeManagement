@@ -4,6 +4,7 @@ from src.ui.printers import TablePrinter
 from src.utils.exporter import Exporter
 from src.utils.validators import get_int_input, validate_email, validate_phone, validate_date, get_float_input
 from src.models.apartments import AptType
+from datetime import datetime
 
 class MainMenu:
     def __init__(self, house_service, report_service, resident_repo, apartment_repo):
@@ -45,6 +46,7 @@ class MainMenu:
             print("2. Список усіх мешканців")
             print("3. Видалити мешканця (Soft delete)")
             print("4. Редагувати контактні дані")
+            print("5. Деталі мешканця за ID")
             print("0. Назад")
 
             choice = input("\nВаш вибір: ")
@@ -104,14 +106,52 @@ class MainMenu:
                     updates['email'] = new_email
                 elif new_email:
                     print("Email проігноровано (невірний формат).")
-
                 if updates:
                     self.resident_repo.update(res_id, **updates)
                     print("Дані успішно оновлено!")
                 else:
                     print("Немає коректних даних для оновлення.")
+            elif choice == '5':
+                res_id = get_int_input("Введіть ID мешканця: ")
+
+                resident = self.resident_repo.get_by_id(res_id)
+                if not resident:
+                    print("Мешканця не знайдено або він видалений.")
+                    continue
+
+                print("\nДЕТАЛІ МЕШКАНЦЯ")
+                print(f"ID: {resident.id}")
+                print(f"ПІБ: {resident.full_name}")
+                print(f"Email: {resident.email or 'не вказано'}")
+                print(f"Телефон: {resident.phone}")
+                print(
+                    f"Дата народження: {resident.birth_date.strftime('%d.%m.%Y') if resident.birth_date else 'не вказано'}")
+                print(f"Статус: {'Активний' if not resident.is_deleted else 'Видалений'}")
+
+                conn = self.resident_repo.db.get_connection()
+                with conn.cursor() as cur:
+                    cur.execute("""
+                                SELECT a.id, a.number, a.floor, a.type, r.move_in_date
+                                FROM residency r
+                                JOIN apartments a ON r.apartment_id = a.id
+                                WHERE r.resident_id = %s AND a.is_deleted = FALSE
+                                ORDER BY r.move_in_date DESC
+                            """, (res_id,))
+                    apartments = cur.fetchall()
+
+                if apartments:
+                    print("\nПоточні квартири (прописаний):")
+                    for apt in apartments:
+                        apt_id, number, floor, apt_type, move_date = apt
+                        print(
+                            f"  - Квартира №{number} (ID {apt_id}), поверх {floor}, тип: {apt_type}, заселений: {move_date.strftime('%d.%m.%Y')}")
+                else:
+                    print("\nМешканець ніде не прописаний (немає активних квартир).")
+
             elif choice == '0':
                 break
+            else:
+                print("Невірний вибір.")
 
     def apartment_menu(self):
         while True:
@@ -213,16 +253,71 @@ class MainMenu:
                 print(f"  Тип   : {current_type}")
                 print(f"  Площа : {current_sq} м²")
 
+                allowed_types = ["Студія", "Однокімнатна", "Двокімнатна", "Трикімнатна", "Чотирикімнатна"]
+                print("\nДоступні типи:")
+                for i, t in enumerate(allowed_types, 1):
+                    print(f"  {i}. {t}")
+
                 print("\nНові значення (Enter — залишити без змін):")
 
                 number = input(f"Номер квартири [{current_number}]: ").strip() or None
-                floor_str = input(f"Поверх [{current_floor}]: ").strip()
-                type_str = input(f"Тип [{current_type}]: ").strip()
-                sq_str = input(f"Площа (м²) [{current_sq}]: ").strip()
 
-                floor = int(floor_str) if floor_str else None
-                sq_meters = float(sq_str.replace(',', '.')) if sq_str else None
-                apt_type = type_str if type_str else None
+                # Парсинг поверху
+                floor = None
+                floor_str = input(f"Поверх [{current_floor}]: ").strip()
+                if floor_str:
+                    try:
+                        floor = int(floor_str)
+                        if floor < 0:
+                            print("Поверх не може бути від'ємним.")
+                            continue
+                    except ValueError:
+                        print("Поверх має бути цілим числом.")
+                        continue
+
+                # Валідація типу квартири
+                apt_type = None
+                type_input = input(f"Тип [{current_type}]: ").strip()
+                if type_input:
+                    if type_input.isdigit():
+                        try:
+                            idx = int(type_input) - 1
+                            if 0 <= idx < len(allowed_types):
+                                apt_type = allowed_types[idx]
+                            else:
+                                print(f"Номер типу повинен бути від 1 до {len(allowed_types)}")
+                                continue
+                        except:
+                            print("Невірний номер типу.")
+                            continue
+                    else:
+                        found = False
+                        for t in allowed_types:
+                            if t.lower() == type_input.lower():
+                                apt_type = t
+                                found = True
+                                break
+                        if not found:
+                            print("Невірний тип. Введіть номер або точну назву з списку.")
+                            continue
+
+                # Парсинг площі
+                sq_meters = None
+                sq_str = input(f"Площа (м²) [{current_sq}]: ").strip()
+                if sq_str:
+                    sq_str = sq_str.replace(',', '.')  # Замінюємо кому на крапку
+                    try:
+                        sq_meters = float(sq_str)
+                        if sq_meters <= 0:
+                            print("Площа має бути більшою за 0.")
+                            continue
+                    except ValueError:
+                        print("Площа має бути числом (наприклад 45.5 або 45,5).")
+                        continue
+
+                if number is None and floor is None and apt_type is None and sq_meters is None:
+                    print("Жодне поле не змінено. Оновлення скасовано.")
+                    continue
 
                 try:
                     updated = self.apartment_repo.update(
@@ -232,11 +327,12 @@ class MainMenu:
                         apt_type=apt_type,
                         square_meters=sq_meters
                     )
-                    print("Квартиру успішно оновлено!" if updated else "Не вдалося оновити (можливо видалена).")
+                    if updated:
+                        print("Квартиру успішно оновлено!")
+                    else:
+                        print("Не вдалося оновити (можливо квартира видалена або нічого не змінилося).")
                 except Exception as e:
-                    print(f"Помилка при оновленні: {e}")
-            elif choice == '0':
-                break
+                    print(f"Помилка при оновленні квартири: {e}")
 
     def operations_menu(self):
         """Меню для руху мешканців: реєстрація в квартирі або переїзд з однієї в іншу"""
@@ -318,12 +414,15 @@ class MainMenu:
             elif choice == '6':
                 export_data = self.report_service.get_residents_for_export()
 
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                base_name = f"residents_report_{timestamp}"
+
                 json_headers, json_rows = export_data["json"]
                 json_data = [dict(zip(json_headers, row)) for row in json_rows]
-                json_path = Exporter.to_json(json_data, "residents_report")
+                json_path = Exporter.to_json(json_data, base_name)
 
                 csv_headers, csv_rows = export_data["csv"]
-                csv_path = Exporter.to_csv(csv_rows, "residents_report", headers=csv_headers)
+                csv_path = Exporter.to_csv(csv_rows, base_name, headers=csv_headers)
                 print(f"Дані збережено у папку exports:")
                 print(f"JSON: {json_path}")
                 print(f"CSV: {csv_path}")
