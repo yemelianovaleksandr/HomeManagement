@@ -305,7 +305,7 @@ class MainMenu:
                 sq_meters = None
                 sq_str = input(f"Площа (м²) [{current_sq}]: ").strip()
                 if sq_str:
-                    sq_str = sq_str.replace(',', '.')  # Замінюємо кому на крапку
+                    sq_str = sq_str.replace(',', '.')
                     try:
                         sq_meters = float(sq_str)
                         if sq_meters <= 0:
