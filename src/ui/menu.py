@@ -287,7 +287,7 @@ class MainMenu:
                             else:
                                 print(f"Номер типу повинен бути від 1 до {len(allowed_types)}")
                                 continue
-                        except:
+                        except ValueError:
                             print("Невірний номер типу.")
                             continue
                     else:
