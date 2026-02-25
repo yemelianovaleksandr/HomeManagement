@@ -6,7 +6,7 @@ class HouseService:
         self.apartment_repo = apartment_repo
         self.residency_repo = residency_repo
 
-    def assign_resident_to_apartment(self, resident_id, apartment_id):
+    def assign_resident_to_apartment(self, resident_id:int, apartment_id:int) -> None:
         """Закріплюємо мешканця за квартирою в межах безпечної транзакції"""
         conn = self.residency_repo.db.get_transaction_connection()
         try:
@@ -29,7 +29,7 @@ class HouseService:
         finally:
             conn.close()
 
-    def move_resident(self, resident_id, from_apt_id, to_apt_id):
+    def move_resident(self, resident_id:int, from_apt_id:int, to_apt_id:int) -> None:
         """Переселяє мешканця з однієї квартири в іншу. Виконує всі необхідні перевірки перед операцією."""
         if from_apt_id == to_apt_id:
             raise ValueError("Неможливо переселити в ту саму квартиру (from == to)")
@@ -81,7 +81,7 @@ class HouseService:
         finally:
             conn_tx.close()
 
-    def unassign_resident(self, resident_id, apartment_id):
+    def unassign_resident(self, resident_id:int, apartment_id:int) -> bool:
         """Просто виписуємо мешканця з квартири"""
         try:
             if self.residency_repo.remove_link(resident_id, apartment_id):
@@ -92,7 +92,7 @@ class HouseService:
             logger.error(f"Помилка відкріплення: {e}")
             return False
 
-    def get_apartment_details(self, apartment_id):
+    def get_apartment_details(self, apartment_id:int) -> dict | None:
         """Отримує деталі квартири та список її поточних мешканців"""
         apt = self.apartment_repo.get_by_id(apartment_id)
         if not apt:
@@ -105,7 +105,7 @@ class HouseService:
             "count": len(residents)
         }
 
-    def delete_resident(self, resident_id):
+    def delete_resident(self, resident_id:int) -> bool:
         """Відкріплюємо від квартир і видаляємо"""
         conn = self.resident_repo.db.get_transaction_connection()
         try:

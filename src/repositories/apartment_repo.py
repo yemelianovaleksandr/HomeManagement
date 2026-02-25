@@ -6,7 +6,7 @@ class ApartmentRepository:
     def __init__(self):
         self.db = DatabaseManager()
 
-    def get_all(self):
+    def get_all(self) -> list[Apartment]:
         """Дивимося список усіх квартир у будинку"""
         query = "SELECT id, number, floor, type, square_meters FROM apartments WHERE is_deleted = FALSE"
         conn = self.db.get_connection()
@@ -15,7 +15,7 @@ class ApartmentRepository:
             return [Apartment(id=r[0], number=r[1], floor=r[2], type=AptType(r[3]),
                             square_meters=r[4]) for r in cur.fetchall()]
 
-    def create(self, number, floor, apt_type, square_meters):
+    def create(self, number:str, floor:int, apt_type:str, square_meters:float) -> int:
         """Створити нову квартиру"""
         query = "INSERT INTO apartments (number, floor, type, square_meters) VALUES (%s, %s, %s, %s) RETURNING id"
         conn = self.db.get_connection()
@@ -23,7 +23,7 @@ class ApartmentRepository:
             cur.execute(query, (number, floor, apt_type, square_meters))
             return cur.fetchone()[0]
 
-    def update(self, apt_id, number=None, floor=None, apt_type=None, square_meters=None):
+    def update(self, apt_id: int, number=None, floor=None, apt_type=None, square_meters=None) -> bool:
         """Оновити дані квартири"""
         updates = []
         params = []
@@ -52,7 +52,7 @@ class ApartmentRepository:
             cur.execute(query, tuple(params))
             return cur.rowcount > 0
 
-    def delete(self, apt_id):
+    def delete(self, apt_id:int) -> bool:
         """Видалення квартири"""
         query = "UPDATE apartments SET is_deleted = TRUE WHERE id = %s"
         conn = self.db.get_connection()
@@ -60,7 +60,7 @@ class ApartmentRepository:
             cur.execute(query, (apt_id,))
             return cur.rowcount > 0
 
-    def get_by_id(self, apt_id):
+    def get_by_id(self, apt_id:int) -> Apartment | None:
         """Шукаємо конкретну квартиру за її номером в базі"""
         query = "SELECT id, number, floor, type, square_meters FROM apartments WHERE id = %s AND is_deleted = FALSE"
         conn = self.db.get_connection()
@@ -82,7 +82,7 @@ class ApartmentRepository:
             return None
 
 
-    def get_by_floor(self, floor):
+    def get_by_floor(self, floor:int) -> list[Apartment]:
         """Дивимося, які квартири є на конкретному поверсі"""
         query = "SELECT id, number, floor, type, square_meters FROM apartments WHERE floor = %s AND is_deleted = FALSE"
         conn = self.db.get_connection()
@@ -93,7 +93,7 @@ class ApartmentRepository:
                 for r in cur.fetchall()
             ]
 
-    def get_by_type(self, apt_type):
+    def get_by_type(self, apt_type:str) -> list[Apartment]:
         """Фільтруємо квартири за типом"""
         try:
             valid_type = AptType(apt_type)
@@ -111,7 +111,7 @@ class ApartmentRepository:
                 for r in cur.fetchall()
             ]
 
-    def get_top_populated(self, limit=5):
+    def get_top_populated(self, limit:int=5) -> list[tuple[str, int]]:
         """Шукаємо квартири з найбільшою кількістю мешканців"""
         query = """
                     SELECT a.number, COUNT(res.resident_id) as count
@@ -127,7 +127,7 @@ class ApartmentRepository:
             cur.execute(query, (limit,))
             return cur.fetchall()
 
-    def get_vacant(self):
+    def get_vacant(self) -> list[tuple[int, str, int, str]]:
         """Отримуємо список вільних квартир"""
         query = """
             SELECT a.id, a.number, a.floor, a.type 

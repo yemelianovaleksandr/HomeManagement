@@ -14,7 +14,7 @@ class Exporter:
         return directory
 
     @staticmethod
-    def to_json(data, filename):
+    def to_json(data: list[dict] | dict, filename: str) -> str:
         folder = Exporter._prepare_directory()
         path = os.path.join(folder, f"{filename}.json")
 
@@ -26,7 +26,7 @@ class Exporter:
         return path
 
     @staticmethod
-    def to_csv(data, filename, headers=None):
+    def to_csv(data: list[list] | list[dict], filename: str, headers: list[str] = None) -> str:
         folder = Exporter._prepare_directory()
         path = os.path.join(folder, f"{filename}.csv")
 

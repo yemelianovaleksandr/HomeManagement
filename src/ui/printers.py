@@ -1,6 +1,6 @@
 class TablePrinter:
     @staticmethod
-    def print_table(data, headers):
+    def print_table(data: list[list | tuple], headers: list[str]) -> None:
         if not data:
             print("\n Дані відсутні")
             return
@@ -26,7 +26,7 @@ class TablePrinter:
         print(separator)
 
     @staticmethod
-    def print_apartment_info(details):
+    def print_apartment_info(details: dict | None) -> None:
         """Виводимо детальну картку квартири: основні параметри + список мешканців, якщо вони є"""
         if not details:
             print("Квартиру не знайдено.")

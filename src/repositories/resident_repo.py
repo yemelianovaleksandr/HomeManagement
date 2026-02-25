@@ -1,12 +1,13 @@
 from src.database import DatabaseManager
 from src.models.resident import Resident
 from psycopg2 import sql
+from datetime import date
 
 class ResidentRepository:
     def __init__(self):
         self.db = DatabaseManager()
 
-    def create(self, full_name, email, phone, birth_date):
+    def create(self, full_name:str, email:str, phone:str, birth_date:date) -> int:
         """Додаємо нового сусіда в нашу систему"""
         query = """
             INSERT INTO residents (full_name, email, phone, birth_date)
@@ -17,7 +18,7 @@ class ResidentRepository:
             cur.execute(query, (full_name, email, phone, birth_date))
             return cur.fetchone()[0]
 
-    def get_all(self, include_deleted=False):
+    def get_all(self, include_deleted:bool=False) -> list[Resident]:
         """Отримує список всіх мешканців"""
         if include_deleted:
             query = "SELECT id, full_name, email, phone, birth_date FROM residents ORDER BY id"
@@ -32,7 +33,7 @@ class ResidentRepository:
                 for row in rows
             ]
 
-    def get_by_id(self, resident_id):
+    def get_by_id(self, resident_id:int) -> Resident | None:
         """Шукає конкретного мешканця за його унікальним ID"""
         query = "SELECT id, full_name, email, phone, birth_date FROM residents WHERE id = %s AND is_deleted = FALSE"
         conn = self.db.get_connection()
@@ -43,7 +44,7 @@ class ResidentRepository:
                 return Resident(id=row[0], full_name=row[1], email=row[2], phone=row[3], birth_date=row[4])
             return None
 
-    def get_by_apartment_id(self, apartment_id):
+    def get_by_apartment_id(self, apartment_id:int) -> list[tuple[int, str, str, str]]:
         """Дістаємо список усіх людей, які зараз прописані в цій квартирі"""
         query = """
             SELECT r.id, r.full_name, r.email, r.phone 
@@ -56,7 +57,7 @@ class ResidentRepository:
             cur.execute(query, (apartment_id,))
             return cur.fetchall()
 
-    def update(self, resident_id, **kwargs):
+    def update(self, resident_id:int, **kwargs) -> bool:
         """Оновлюємо інформацію про людину"""
         if not kwargs:
             return False
@@ -78,7 +79,7 @@ class ResidentRepository:
             cur.execute(query, values)
             return cur.rowcount > 0
 
-    def soft_delete(self, resident_id):
+    def soft_delete(self, resident_id:int) -> bool:
         """Позначає мешканця як видаленого"""
         query = "UPDATE residents SET is_deleted = TRUE WHERE id = %s AND is_deleted = FALSE"
         conn = self.db.get_connection()

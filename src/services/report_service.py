@@ -3,7 +3,7 @@ class ReportService:
         self.resident_repo = resident_repo
         self.apartment_repo = apartment_repo
 
-    def get_residents_for_export(self):
+    def get_residents_for_export(self) -> dict[str, tuple[list[str], list[list]]]:
         """Готуємо дані про мешканців у зручному форматі для вивантаження (CSV/JSON)"""
         raw_data = self.resident_repo.get_all()
         json_headers = ["ID", "Name", "Email", "Phone", "Birth Date"]
@@ -22,6 +22,6 @@ class ReportService:
         "csv": (csv_headers, csv_rows)
     }
 
-    def get_apartments_with_most_residents(self):
+    def get_apartments_with_most_residents(self) -> list[tuple[str, int]]:
         """Робимо топ-5 найбільш "густонаселених" квартир у будинку"""
         return self.apartment_repo.get_top_populated(limit=5)
